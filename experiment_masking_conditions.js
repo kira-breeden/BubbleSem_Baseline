@@ -406,27 +406,17 @@ function createFeedbackTrial(trialIndex) {
     return {
         type: jsPsychHtmlKeyboardResponse,
         stimulus: function() {
-            // Get the guess from previous trial
-            const allData = jsPsych.data.get();
-            const guessTrials = allData.filter({trial_type: 'guess-input', trial_number: trialNumber});
-            
-            let guessedWord = 'unknown';
-            
-            if (guessTrials.count() > 0) {
-                const guessTrial = guessTrials.values()[0];
-                guessedWord = guessTrial.response.target_word_guess;
-            }
-            
-            const correctWord = trial.target_word;
-            
+            const targetWord = trial.target_word;
             return `
-                <div style="max-width: 600px; margin: 0 auto; text-align: center;">
-                    <p style="font-size: 18px;">Your guess: <strong>${guessedWord}</strong></p>
-                    <p style="font-size: 18px;">Correct answer: <strong>${correctWord}</strong></p>
-                    <p style="margin-top: 30px; color: #666;">Press any key to continue</p>
+                <div style="text-align: center; max-width: 600px; margin: 0 auto; padding: 40px;">
+                    <h2>Great job!</h2>
+                    <p style="font-size: 18px; margin: 30px 0;">The target word was:</p>
+                    <p style="font-size: 36px; font-weight: bold; margin: 30px 0;">${targetWord}</p>
+                    <p style="margin-top: 40px; font-size: 14px; color: #666;"><em>Press any key to continue</em></p>
                 </div>
             `;
         },
+        trial_duration: null,
         on_finish: function(data) {
             data.trial_type = 'feedback';
             data.trial_number = trialNumber;
