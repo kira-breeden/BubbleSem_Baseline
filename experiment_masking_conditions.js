@@ -433,14 +433,9 @@ const welcome = {
     stimulus: `
         <div style="max-width: 600px; margin: 0 auto; text-align: left;">
             <h1>Word Guessing Experiment</h1>
-            <p>In this experiment, you will see sentences where one word is hidden.</p>
-            <p>Your task is to:</p>
-            <ul>
-                <li>Read the sentence carefully</li>
-                <li>Try to figure out what the <strong>bolded word</strong> is</li>
-                <li>Make your best guess when you're ready</li>
-            </ul>
-            <p>Sometimes you'll see sentences with nonsense words, and sometimes you'll see normal sentences with just one word hidden.</p>
+            <p>In this experiment, you will be trying to guess the meaning of a <strong>bolded</strong> word.</p>
+            <p>Sometimes you'll see sentences with all nonsense words, and sometimes you'll see normal sentences with just one nonsense word.</p>
+            <p>This might be quite difficult at times! <strong>Please take your time and do your best to guess the word </strong></p>
             <p><em>Press any key to continue</em></p>
         </div>
     `
@@ -456,13 +451,46 @@ const instructions = {
             <ol>
                 <li>You'll see a sentence with one <strong>bolded word</strong> - this is your target word to guess</li>
                 <li>Read the sentence carefully to understand the context</li>
-                <li>When you think you know the bolded word, click "Make Guess"</li>
+                <li>When you think you know the meaning of the bolded word, click "Make Guess"</li>
                 <li>Type your guess for the bolded word</li>
                 <li>Rate your confidence in your guess</li>
                 <li>You'll see feedback showing the correct answer</li>
             </ol>
-            <p><strong>Important:</strong> Try to be as specific as possible in your guesses. If you have no idea, that's okay - just make your best guess!</p>
+            <p><strong>Important: Try to be as specific as possible in your guesses. Your guess should be ONE WORD!</strong></p>
             <p><em>Press any key to start</em></p>
+        </div>
+    `
+};
+
+// Instructions
+const examples_page1 = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+        <div style="max-width: 600px; margin: 0 auto; text-align: left;">
+            <h2>When are you ready to guess?</h2>
+            
+            <p><strong>This will sometimes be quite difficult, but just do your best!</strong></p>
+            
+            <p>For example, you might see something like this:</p>
+            
+            <p style="margin-left: 20px; font-style: italic;">
+                "The glorp tafed in the deng zirp <strong>glosh</strong>."
+            </p>
+            
+            <p>Take some time to think about what "glosh" might mean and once you have your best ONE WORD GUESS, you can move forward.</p>
+            
+            <p style="margin-top: 30px;"><em>Press any key to continue</em></p>
+        </div>
+    `
+};
+
+const start_study = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+        <div style="max-width: 600px; margin: 0 auto; text-align: left;">
+            <p><strong>Final Reminder: Please use ONE WORD GUESSES! </strong></p>
+            <p><strong>Some will be harder and some will be easier, so just do your best and take your time! </strong></p>
+            <h2>Press Any Key to Start Experiment</h2>
         </div>
     `
 };
@@ -471,7 +499,7 @@ const instructions = {
 async function createTimeline() {
     await loadTrialData();
     
-    let timeline = [welcome, instructions];
+    let timeline = [welcome, instructions, examples_page1, start_study];
     
     // Add trials for each sentence (now in randomized order)
     for (let i = 0; i < trialData.length; i++) {
@@ -501,7 +529,7 @@ async function createTimeline() {
     const save_data = {
         type: jsPsychPipe,
         action: "save",
-        experiment_id: "6sUXv8MJL3e6",
+        experiment_id: "gbHk1YAvpYtc",
         filename: filename,
         data_string: () => jsPsych.data.get().csv()
     };
