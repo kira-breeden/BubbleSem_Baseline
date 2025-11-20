@@ -489,7 +489,7 @@ const start_study = {
     stimulus: `
         <div style="max-width: 600px; margin: 0 auto; text-align: left;">
             <p><strong>Final Reminder: Please use ONE WORD GUESSES! </strong></p>
-            <p><strong>Some will be harder and some will be easier, so just do your best and take your time! </strong></p>
+            <p><strong>Some will be harder than others, so just do your best and take your time! </strong></p>
             <h2>Press Any Key to Start Experiment</h2>
         </div>
     `
