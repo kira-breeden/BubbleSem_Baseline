@@ -232,29 +232,24 @@ function createWordRevealTrial(trialIndex) {
             
             let html = `
                 <div class="trial-counter">Trial ${trialNumber} of ${trialData.length}</div>
-                <div class="instructions">
-                    <p>The <strong>bolded word</strong> is hidden. Try to guess what it is based on the context.</p>
-                    <p>When you're ready to guess, click "Make Guess".</p>
-                </div>
                 <div class="sentence-container" id="sentence-container">
             `;
             
             // Build sentence based on masking condition
             for (let index = 0; index < jabberTokens.length; index++) {
-                let wordClass = 'word';
                 let displayToken = '';
+                let isTarget = false;
                 
                 // Check if this is punctuation
                 const isPunctuation = /^[.,!?;:'"]$/.test(jabberTokens[index]);
                 
                 if (isPunctuation) {
                     // Always show punctuation
-                    wordClass += ' article';
                     displayToken = jabberTokens[index];
                 } else if (index === targetIndex) {
                     // Target word: always show as jabberwocky and bold
-                    wordClass += ' target';
                     displayToken = jabberTokens[index];
+                    isTarget = true;
                 } else {
                     // Non-target, non-punctuation word
                     const cleanJabber = jabberTokens[index].toLowerCase().replace(/[.,!?;:'"]/g, '');
@@ -262,23 +257,29 @@ function createWordRevealTrial(trialIndex) {
                     
                     if (maskingCondition === 'none') {
                         // NONE condition: show all real words except target
-                        wordClass += ' article';
                         displayToken = realTokens[index];
                     } else {
                         // ALL condition: show jabberwocky, except for articles
                         if (articles.includes(cleanJabber) || articles.includes(cleanReal) || cleanJabber === cleanReal) {
                             // This is an article or same in both - show real word
-                            wordClass += ' article';
                             displayToken = realTokens[index];
                         } else {
                             // Regular word - show jabberwocky
-                            wordClass += ' article'; // No special styling, just display
                             displayToken = jabberTokens[index];
                         }
                     }
                 }
                 
-                html += `<span class="${wordClass}">${displayToken}</span>`;
+                if (isTarget) {
+                    html += `<span class="word target">${displayToken}</span>`;
+                } else {
+                    html += `<span class="word">${displayToken}</span>`;
+                }
+                
+                // Add space after word (except for punctuation)
+                if (!isPunctuation && index < jabberTokens.length - 1) {
+                    html += ' ';
+                }
             }
             
             html += `
@@ -373,7 +374,7 @@ function createConfidenceRatingTrial(trialIndex) {
     return {
         type: jsPsychHtmlButtonResponse,
         stimulus: `
-            <div class="instructions">
+            <div style="text-align: center;">
                 <p>How confident are you in your guess?</p>
             </div>
         `,
@@ -410,22 +411,16 @@ function createFeedbackTrial(trialIndex) {
             const guessTrials = allData.filter({trial_type: 'guess-input', trial_number: trialNumber});
             
             let guessedWord = 'unknown';
-            let isCorrect = false;
             
             if (guessTrials.count() > 0) {
                 const guessTrial = guessTrials.values()[0];
                 guessedWord = guessTrial.response.target_word_guess;
-                isCorrect = guessTrial.guess_correct;
             }
             
             const correctWord = trial.target_word;
-            const resultText = isCorrect ? 
-                '<span style="color: green; font-weight: bold;">Correct!</span>' : 
-                '<span style="color: red; font-weight: bold;">Incorrect</span>';
             
             return `
                 <div style="max-width: 600px; margin: 0 auto; text-align: center;">
-                    <h2>${resultText}</h2>
                     <p style="font-size: 18px;">Your guess: <strong>${guessedWord}</strong></p>
                     <p style="font-size: 18px;">Correct answer: <strong>${correctWord}</strong></p>
                     <p style="margin-top: 30px; color: #666;">Press any key to continue</p>
