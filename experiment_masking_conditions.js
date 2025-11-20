@@ -37,9 +37,23 @@ class SeededRandom {
     }
 }
 
-// Determine which sublist to use based on URL parameter (now accepts "1A", "2B", etc.)
+// Mapping from condition number to sublist ID
+const conditionToSublist = {
+    0: '1A',
+    1: '1B',
+    2: '2A',
+    3: '2B',
+    4: '3A',
+    5: '3B',
+    6: '4A',
+    7: '4B'
+};
+
+// Determine which sublist to use
+// Priority: 1) URL parameter, 2) Will be set by data pipe condition, 3) default
 const sublistParam = getURLParameter('sublist');
 let sublistId = '1A'; // default
+let conditionNumber = null; // Will be set by data pipe
 
 if (sublistParam) {
     // Check if it matches format like "1A", "2B", etc.
@@ -66,14 +80,12 @@ if (seedParam) {
 console.log(`Using sublist: ${sublistId}`);
 console.log(`Using random seed: ${randomSeed}`);
 
-const csvFilename = `trial_list_sublist_${sublistId}.csv`;
+// These will be set once sublist is determined
+let csvFilename;
+let filename;
 
 // Initialize jsPsych
 const jsPsych = initJsPsych({});
-
-// Initialize filename based on subjCode, sublist, and seed
-const subjCode = getURLParameter('subjCode');
-const filename = `${subjCode}_sublist${sublistId}_seed${randomSeed}.csv`;
 
 // Function to tokenize sentence into words and punctuation
 function tokenizeSentence(sentence) {
@@ -515,11 +527,13 @@ async function createTimeline() {
         stimulus: '',
         trial_duration: 1,
         on_start: function() {
+            const subjCode = getURLParameter('subjCode');
             jsPsych.data.addProperties({
                 experiment_version: '3.0_masking_conditions',
                 sublist: sublistId,
                 random_seed: randomSeed,
                 subjCode: subjCode,
+                condition_number: conditionNumber,
                 completion_time: new Date().toISOString()
             });
         }
@@ -540,6 +554,7 @@ async function createTimeline() {
     timeline.push({
         type: jsPsychHtmlKeyboardResponse,
         stimulus: function() {
+            const subjCode = getURLParameter('subjCode');
             // Get survey URL from URL parameter or use default
             const surveyURL = getURLParameter('survey_url') || 'https://uwmadison.co1.qualtrics.com/jfe/form/SV_0VC8tugavHYnhoa';
             // Add subjCode to survey URL
@@ -568,16 +583,45 @@ async function createTimeline() {
 }
 
 // Run the experiment
-createTimeline().then(timeline => {
-    jsPsych.run(timeline);
-}).catch(error => {
-    console.error('Error loading experiment:', error);
-    document.body.innerHTML = `
-        <div style="text-align: center; padding: 50px;">
-            <h2>Error Loading Experiment</h2>
-            <p>Could not load trial list for sublist ${sublistId}.</p>
-            <p>Please make sure the file ${csvFilename} exists.</p>
-            <p>Error: ${error.message}</p>
-        </div>
-    `;
-});
+async function createExperiment() {
+    try {
+        // Get condition from data pipe if not already set by URL parameter
+        if (!sublistParam) {
+            conditionNumber = await jsPsychPipe.getCondition("gbHk1YAvpYtc");
+            console.log(`Retrieved condition from data pipe: ${conditionNumber}`);
+            
+            if (conditionNumber in conditionToSublist) {
+                sublistId = conditionToSublist[conditionNumber];
+                console.log(`Condition ${conditionNumber} maps to sublist ${sublistId}`);
+            } else {
+                console.warn(`Unknown condition number: ${conditionNumber}. Using default sublist 1A.`);
+            }
+        }
+        
+        // Now that we have the sublist, set the filenames
+        csvFilename = `trial_list_sublist_${sublistId}.csv`;
+        const subjCode = getURLParameter('subjCode');
+        filename = `${subjCode}_sublist${sublistId}_seed${randomSeed}.csv`;
+        
+        console.log(`Final sublist: ${sublistId}`);
+        console.log(`CSV filename: ${csvFilename}`);
+        console.log(`Output filename: ${filename}`);
+        
+        // Create and run the timeline
+        const timeline = await createTimeline();
+        jsPsych.run(timeline);
+        
+    } catch (error) {
+        console.error('Error loading experiment:', error);
+        document.body.innerHTML = `
+            <div style="text-align: center; padding: 50px;">
+                <h2>Error Loading Experiment</h2>
+                <p>Could not load trial list for sublist ${sublistId}.</p>
+                <p>Please make sure the file ${csvFilename} exists.</p>
+                <p>Error: ${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+createExperiment();
