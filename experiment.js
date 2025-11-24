@@ -380,25 +380,31 @@ function createGuessInputTrial(trialIndex) {
 function createConfidenceRatingTrial(trialIndex) {
     const trial = trialData[trialIndex];
     const trialNumber = trialIndex + 1;
+    const originalTrialNumber = trial.trial_number || trialNumber;
     const maskingCondition = trial.masking_condition || 'all';
     
     return {
         type: jsPsychHtmlButtonResponse,
         stimulus: `
-            <div style="text-align: center; max-width: 600px; margin: 0 auto; padding: 40px;">
-                <h2>How confident are you in your guess?</h2>
-                <p style="margin: 30px 0;">Rate your confidence on the scale below:</p>
+            <div style="text-align: center;">
+                <p>How confident are you in your guess?</p>
             </div>
         `,
-        choices: ['1 - Not at all confident', '2', '3', '4', '5 - Very confident'],
-        button_html: '<button class="jspsych-btn" style="margin: 10px; padding: 15px 25px; font-size: 16px;">%choice%</button>',
+        choices: ['Not at all confident', 'Slightly confident', 'Moderately confident', 'Very confident', 'Extremely confident'],
         on_finish: function(data) {
             data.trial_type = 'confidence-rating';
             data.trial_number = trialNumber;
+            data.original_trial_number = originalTrialNumber;
+            data.randomization_position = trialIndex + 1;
             data.sublist = sublistId;
             data.random_seed = randomSeed;
             data.masking_condition = maskingCondition;
-            data.confidence = data.response + 1; // Convert 0-4 to 1-5
+            data.confidence_rating = data.response + 1; // Convert 0-4 to 1-5
+            
+            // Add trial info
+            data.target_word = trial.target_word;
+            data.entropy = trial.entropy;
+            data.target_probability = trial.target_probability;
         }
     };
 }
