@@ -214,17 +214,16 @@ function createWordRevealTrial(trialIndex) {
     
     const trialNumber = trialIndex + 1;
     const originalTrialNumber = trial.trial_number || trialNumber;
-    const maskingCondition = trial.masking_condition || 'all';
+    const maskingCondition = trial.masking_condition || 'all'; // Default to 'all' if missing
     
     // Debug logging
-    console.log(`Trial ${trialNumber} (Condition: ${maskingCondition}):`, {
+    console.log(`Trial ${trialNumber}:`, {
         targetWord,
         targetPos,
         targetIndex,
+        maskingCondition,
         realTokensCount: realTokens.length,
-        jabberTokensCount: jabberTokens.length,
-        targetInReal: realTokens[targetIndex],
-        targetInJabber: jabberTokens[targetIndex]
+        jabberTokensCount: jabberTokens.length
     });
     
     // Validation
@@ -245,68 +244,53 @@ function createWordRevealTrial(trialIndex) {
             
             let html = `
                 <div class="trial-counter">Trial ${trialNumber} of ${trialData.length}</div>
-                <div class="instructions">
-                    <p>Read the sentence below. The <strong>bolded word</strong> is a nonsense word.</p>
-                    <p>Try to figure out what the bolded word means based on the context, then click "Make Guess" when ready.</p>
-                </div>
                 <div class="sentence-container" id="sentence-container">
             `;
             
-            // Choose which tokens to display based on masking condition
-            let displayTokens;
-            if (maskingCondition === 'all') {
-                // All masked condition: show jabberwocky for everything except articles and punctuation
-                displayTokens = jabberTokens.map((token, index) => {
-                    // Check if it's punctuation
-                    if (/^[.,!?;:'"]$/.test(token)) {
-                        return token;
-                    }
-                    
-                    // Check if it's an article (compare to real token, lowercased)
-                    const cleanToken = token.toLowerCase().replace(/[.,!?;:'"]/g, '');
-                    const cleanReal = index < realTokens.length ? realTokens[index].toLowerCase().replace(/[.,!?;:'"]/g, '') : '';
-                    
-                    if (articles.includes(cleanToken) || articles.includes(cleanReal)) {
-                        return realTokens[index];
-                    }
-                    
-                    // Otherwise show jabberwocky
-                    return token;
-                });
-            } else {
-                // None masked condition: show real sentence, just hide the target word
-                displayTokens = [...realTokens];
-            }
-            
-            // Build sentence token by token
-            for (let index = 0; index < displayTokens.length; index++) {
-                let tokenClass = 'word';
-                let displayToken = displayTokens[index];
+            // Build sentence based on masking condition
+            for (let index = 0; index < jabberTokens.length; index++) {
+                let displayToken = '';
+                let isTarget = false;
                 
                 // Check if this is punctuation
-                const isPunctuation = /^[.,!?;:'"]$/.test(displayToken);
+                const isPunctuation = /^[.,!?;:'"]$/.test(jabberTokens[index]);
                 
-                if (index === targetIndex) {
-                    // This is the target word - show jabberwocky version and make it bold
-                    tokenClass += ' target';
+                if (isPunctuation) {
+                    // Always show punctuation
                     displayToken = jabberTokens[index];
-                } else if (isPunctuation) {
-                    // Punctuation - no special styling, just display
-                    tokenClass = 'word';
+                } else if (index === targetIndex) {
+                    // Target word: always show as jabberwocky and bold
+                    displayToken = jabberTokens[index];
+                    isTarget = true;
                 } else {
-                    // Regular word - no interaction
-                    tokenClass += ' article';
+                    // Non-target, non-punctuation word
+                    const cleanJabber = jabberTokens[index].toLowerCase().replace(/[.,!?;:'"]/g, '');
+                    const cleanReal = realTokens[index].toLowerCase().replace(/[.,!?;:'"]/g, '');
+                    
+                    if (maskingCondition === 'none') {
+                        // NONE condition: show all real words except target
+                        displayToken = realTokens[index];
+                    } else {
+                        // ALL condition: show jabberwocky, except for articles
+                        if (articles.includes(cleanJabber) || articles.includes(cleanReal) || cleanJabber === cleanReal) {
+                            // This is an article or same in both - show real word
+                            displayToken = realTokens[index];
+                        } else {
+                            // Regular word - show jabberwocky
+                            displayToken = jabberTokens[index];
+                        }
+                    }
                 }
                 
-                html += `<span class="${tokenClass}">${displayToken}</span>`;
+                if (isTarget) {
+                    html += `<span class="word target">${displayToken}</span>`;
+                } else {
+                    html += `<span class="word">${displayToken}</span>`;
+                }
                 
-                // Add space after word tokens (but not after punctuation that's at sentence end)
-                if (!isPunctuation || index < displayTokens.length - 1) {
-                    const nextToken = displayTokens[index + 1];
-                    const nextIsPunctuation = nextToken && /^[.,!?;:'"]$/.test(nextToken);
-                    if (!nextIsPunctuation) {
-                        html += ' ';
-                    }
+                // Add space after word (except for punctuation)
+                if (!isPunctuation && index < jabberTokens.length - 1) {
+                    html += ' ';
                 }
             }
             
@@ -324,7 +308,7 @@ function createWordRevealTrial(trialIndex) {
         on_load: function() {
             document.getElementById('guess-btn').addEventListener('click', function() {
                 jsPsych.finishTrial({
-                    trial_type: 'word-reveal',
+                    trial_type: 'word-display',
                     trial_number: trialNumber,
                     original_trial_number: originalTrialNumber,
                     randomization_position: trialIndex + 1,
@@ -335,7 +319,7 @@ function createWordRevealTrial(trialIndex) {
                     target_word: trial.target_word,
                     entropy: trial.entropy,
                     target_probability: trial.target_probability,
-                    total_time_before_guess: Date.now() - startTime,
+                    time_before_guess: Date.now() - startTime,
                     jabber_sentence: jabberSentence,
                     real_sentence: realSentence
                 });
