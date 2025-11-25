@@ -664,7 +664,7 @@ async function createExperiment() {
         // Now that we have the sublist, set the filenames
         csvFilename = `trial_list_sublist_${sublistId}.csv`;
         const subjCode = getURLParameter('subjCode') || jsPsych.randomization.randomID(10);
-        filename = `${subjCode}_sublist${sublistId}_seed${randomSeed}.csv`;
+        filename = `${subjCode}.csv`;
         
         console.log(`Final sublist: ${sublistId}`);
         console.log(`Subject Code: ${subjCode}`);
