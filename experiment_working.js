@@ -8,6 +8,9 @@ let randomSeed = null;
 // Store temporary data during a trial sequence
 let trialSequenceData = {};
 
+// Store all consolidated trial data
+let consolidatedTrials = [];
+
 // Articles that should not be obscured (still shown as real words in 'all' condition)
 const articles = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'];
 
@@ -77,7 +80,7 @@ console.log(`Using random seed: ${randomSeed}`);
 let csvFilename;
 let filename;
 
-// Initialize jsPsych without the problematic on_data_update callback
+// Initialize jsPsych
 const jsPsych = initJsPsych({});
 
 // Function to tokenize sentence into words and punctuation
@@ -320,10 +323,7 @@ function createWordRevealTrial(trialIndex) {
             });
         },
         trial_duration: null,
-        response_ends_trial: false,
-        save_trial_parameters: {
-            // Don't save default jsPsych parameters for this trial
-        }
+        response_ends_trial: false
     };
 }
 
@@ -366,13 +366,11 @@ function createConfidenceRatingTrial(trialIndex) {
             trialSequenceData.confidence_rating = data.response + 1; // Convert 0-4 to 1-5
             trialSequenceData.confidence_rt = data.rt;
             
-            // Now save all the consolidated trial data
-            jsPsych.data.write({
-                trial_type: 'consolidated-trial',
-                ...trialSequenceData
-            });
+            // Add to consolidated trials array
+            consolidatedTrials.push({...trialSequenceData});
             
             console.log('Saved consolidated trial:', trialSequenceData);
+            console.log('Total consolidated trials so far:', consolidatedTrials.length);
         }
     };
 }
@@ -499,6 +497,34 @@ const start_study = {
     `
 };
 
+// Function to convert array of objects to CSV
+function arrayToCSV(data) {
+    if (data.length === 0) return '';
+    
+    // Get headers from first object
+    const headers = Object.keys(data[0]);
+    
+    // Create CSV rows
+    const csvRows = [];
+    csvRows.push(headers.join(','));
+    
+    for (const row of data) {
+        const values = headers.map(header => {
+            const val = row[header];
+            // Escape values that contain commas or quotes
+            if (val === null || val === undefined) return '';
+            const str = String(val);
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        });
+        csvRows.push(values.join(','));
+    }
+    
+    return csvRows.join('\n');
+}
+
 // Create timeline
 async function createTimeline() {
     await loadTrialData();
@@ -542,12 +568,15 @@ async function createTimeline() {
         experiment_id: "gbHk1YAvpYtc",
         filename: filename,
         data_string: () => {
-            // Get only the consolidated trial data
-            const consolidatedData = jsPsych.data.get().filter({trial_type: 'consolidated-trial'});
             console.log('Attempting to save data...');
-            console.log('Number of consolidated trials:', consolidatedData.count());
-            console.log('Sample data:', consolidatedData.values()[0]);
-            return consolidatedData.csv();
+            console.log('Number of consolidated trials:', consolidatedTrials.length);
+            console.log('Sample data:', consolidatedTrials[0]);
+            
+            // Convert consolidated trials array to CSV
+            const csvData = arrayToCSV(consolidatedTrials);
+            console.log('CSV preview (first 500 chars):', csvData.substring(0, 500));
+            
+            return csvData;
         },
         on_finish: function(data) {
             console.log('Data save completed');
